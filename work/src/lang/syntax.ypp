@@ -1,0 +1,14 @@
+%{
+    extern "C" {
+        int yylex();
+        int yyerror( char const * );
+    }
+%}
+
+%start Source
+
+%%
+
+Source: {  };
+
+%%
