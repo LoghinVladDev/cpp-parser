@@ -14,6 +14,14 @@
 
     char const *            syntaxStringLiteral;
 
+
+#ifdef __cplusplus
+
+    StateType               stateType;
+
+#endif
+
+
 }
 
 
@@ -30,10 +38,315 @@
 %token < syntaxStringLiteral >          StringLiteral;
 
 
+
+%token                                  PreprocessorIf;
+%token                                  PreprocessorElseIf;
+%token                                  PreprocessorElse;
+%token                                  PreprocessorEndIf;
+
+%token                                  PreprocessorIfDefined;
+%token                                  PreprocessorIfNotDefined;
+%token                                  PreprocessorDefine;
+%token                                  PreprocessorUndef;
+
+%token                                  PreprocessorInclude;
+%token                                  PreprocessorLine;
+%token                                  PreprocessorError;
+%token                                  PreprocessorWarning;
+%token                                  PreprocessorPragma;
+
+%token                                  PreprocessorDefined;
+%token                                  PreprocessorHasInclude;
+%token                                  PreprocessorHasCppAttribute
+%token                                  Preprocessor_Pragma;
+
+%token                                  PreprocessorOperatorStringify;
+%token                                  PreprocessorOperatorConcatenate;
+
+
+
+%token                                  KeywordAlignAs;
+%token                                  KeywordAlignOf;
+%token                                  KeywordAnd;
+%token                                  KeywordAndEquals;
+%token                                  KeywordAsm;
+%token                                  KeywordAuto;
+
+%token                                  KeywordBitAnd;
+%token                                  KeywordBitOr;
+%token                                  KeywordBool;
+%token                                  KeywordBreak;
+
+%token                                  KeywordCase;
+%token                                  KeywordCatch;
+%token                                  KeywordChar;
+%token                                  KeywordChar8;
+%token                                  KeywordChar16;
+%token                                  KeywordChar32;
+%token                                  KeywordClass;
+%token                                  KeywordCompl;
+%token                                  KeywordConcept;
+%token                                  KeywordConst;
+%token                                  KeywordConsteval;
+%token                                  KeywordConstexpr;
+%token                                  KeywordConstinit;
+%token                                  KeywordConstCast;
+%token                                  KeywordContinue;
+%token                                  KeywordCoAwait;
+%token                                  KeywordCoReturn;
+%token                                  KeywordCoYield;
+
+%token                                  KeywordDecltype;
+%token                                  KeywordDefault;
+%token                                  KeywordDelete;
+%token                                  KeywordDo;
+%token                                  KeywordDouble;
+%token                                  KeywordDynamicCast;
+
+%token                                  KeywordElse;
+%token                                  KeywordEnum;
+%token                                  KeywordExplicit;
+%token                                  KeywordExport;
+%token                                  KeywordExtern;
+
+%token                                  KeywordFalse;
+%token                                  KeywordFloat;
+%token                                  KeywordFor;
+%token                                  KeywordFriend;
+%token                                  KeywordFinal;
+
+%token                                  KeywordGoto;
+
+%token                                  KeywordIf;
+%token                                  KeywordInline;
+%token                                  KeywordInt;
+%token                                  KeywordImport;
+
+%token                                  KeywordLong;
+
+%token                                  KeywordMutable;
+%token                                  KeywordModule;
+
+%token                                  KeywordNamespace;
+%token                                  KeywordNew;
+%token                                  KeywordNoexcept;
+%token                                  KeywordNot;
+%token                                  KeywordNotEquals;
+%token                                  KeywordNullptr;
+
+%token                                  KeywordOperator;
+%token                                  KeywordOr;
+%token                                  KeywordOrEquals;
+%token                                  KeywordOverride;
+
+%token                                  KeywordPrivate;
+%token                                  KeywordProtected;
+%token                                  KeywordPublic;
+
+%token                                  KeywordRegister;
+%token                                  KeywordReinterpretCast;
+%token                                  KeywordRequires;
+%token                                  KeywordReturn;
+
+%token                                  KeywordShort;
+%token                                  KeywordSigned;
+%token                                  KeywordSizeof;
+%token                                  KeywordStatic;
+%token                                  KeywordStaticAssert;
+%token                                  KeywordStaticCast;
+%token                                  KeywordStruct;
+%token                                  KeywordSwitch;
+
+%token                                  KeywordTemplate;
+%token                                  KeywordThis;
+%token                                  KeywordThreadLocal;
+%token                                  KeywordThrow;
+%token                                  KeywordTrue;
+%token                                  KeywordTry;
+%token                                  KeywordTypedef;
+%token                                  KeywordTypeid;
+%token                                  KeywordTypename;
+
+%token                                  KeywordUnion;
+%token                                  KeywordUnsigned;
+%token                                  KeywordUsing;
+
+%token                                  KeywordVirtual;
+%token                                  KeywordVoid;
+%token                                  KeywordVolatile;
+
+%token                                  KeywordWChar;
+%token                                  KeywordWhile;
+
+%token                                  KeywordXor;
+%token                                  KeywordXorEquals;
+
+
+
+%token                                  OperatorScopeResolution;
+
+%token                                  OperatorIncrement;
+%token                                  OperatorDecrement;
+
+
+%token                                  OperatorMemberAccess;
+%token                                  OperatorPointerMemberAccess;
+
+%left                                   OperatorScopeResolution;
+
+%left                                   OperatorMemberAccess;
+%left                                   OperatorPointerMemberAccess;
+
+
+%token                                  OperatorNot;
+%token                                  OperatorBitwiseNot;
+
+%right                                  OperatorNot;
+%right                                  OperatorBitwiseNot;
+
+
+%token                                  OperatorPointerToMember;
+%token                                  OperatorPointerToPointerMember;
+
+%left                                   OperatorPointerToMember;
+%left                                   OperatorPointerToPointerMember;
+
+
+%token                                  OperatorMultiply;
+%token                                  OperatorDivide;
+%token                                  OperatorModulo;
+
+%left                                   OperatorMultiply;
+%left                                   OperatorDivide;
+%left                                   OperatorModulo;
+
+
+%token                                  OperatorSum;
+%token                                  OperatorSubtract;
+
+%left                                   OperatorSum;
+%left                                   OperatorSubtract;
+
+
+%token                                  OperatorBitwiseLeftShift;
+%token                                  OperatorBitwiseRightShift;
+
+%left                                   OperatorBitwiseLeftShift;
+%left                                   OperatorBitwiseRightShift;
+
+
+%token                                  OperatorThreeWayCompare;
+
+%left                                   OperatorThreeWayCompare;
+
+
+%token                                  OperatorLess;
+%token                                  OperatorLessEquals;
+%token                                  OperatorGreater;
+%token                                  OperatorGreaterEquals;
+
+%left                                   OperatorLess;
+%left                                   OperatorLessEquals;
+%left                                   OperatorGreater;
+%left                                   OperatorGreaterEquals;
+
+
+%token                                  OperatorEquals;
+%token                                  OperatorNotEquals;
+
+%left                                   OperatorEquals;
+%left                                   OperatorNotEquals;
+
+
+%token                                  OperatorBitwiseAnd;
+
+%left                                   OperatorBitwiseAnd;
+
+
+%token                                  OperatorBitwiseXor;
+
+%left                                   OperatorBitwiseXor;
+
+
+%token                                  OperatorBitwiseOr;
+
+%left                                   OperatorBitwiseOr;
+
+
+%token                                  OperatorAnd;
+
+%left                                   OperatorAnd;
+
+
+%token                                  OperatorOr;
+
+%left                                   OperatorOr;
+
+
+%token                                  OperatorTernaryConditionalIf;
+%token                                  OperatorTernaryConditionalElse;
+
+%right                                  OperatorTernaryConditionalIf;
+%right                                  OperatorTernaryConditionalElse;
+
+
+%token                                  OperatorAssign;
+%token                                  OperatorAssignSum;
+%token                                  OperatorAssignSubtract;
+%token                                  OperatorAssignMultiply;
+%token                                  OperatorAssignDivide;
+%token                                  OperatorAssignModulo;
+%token                                  OperatorAssignBitwiseLeftShift;
+%token                                  OperatorAssignBitwiseRightShift;
+%token                                  OperatorAssignBitwiseAnd;
+%token                                  OperatorAssignBitwsieXor;
+%token                                  OperatorAssignBitwiseOr;
+
+%right                                  OperatorAssign;
+%right                                  OperatorAssignSum;
+%right                                  OperatorAssignSubtract;
+%right                                  OperatorAssignMultiply;
+%right                                  OperatorAssignDivide;
+%right                                  OperatorAssignModulo;
+%right                                  OperatorAssignBitwiseLeftShift;
+%right                                  OperatorAssignBitwiseRightShift;
+%right                                  OperatorAssignBitwiseAnd;
+%right                                  OperatorAssignBitwsieXor;
+%right                                  OperatorAssignBitwiseOr;
+
+
+%token                                  OperatorComma;
+
+%left                                   OperatorComma;
+
+
+
+%type < stateType >                     Statements;
+%type < stateType >                     Statement;
+
+
+
 %start Source
 
 %%
 
-Source: {  };
+Source:
+    Statements {
+        State :: rootState () -> addState ( $1 );
+    };
+
+Statements: 
+    Statements Statement { 
+        $$ = new State ( State :: Statements, { $1, $2 } );  
+    } | 
+    Statement { 
+        $$ = new State ( State :: Statements, { $1 } );
+    };
+
+Statement: 
+
+    { 
+        $$ = new State ( State :: Statement ); 
+    };
 
 %%

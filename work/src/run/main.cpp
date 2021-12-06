@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <State.hpp>
 
 extern "C" {
 
@@ -11,13 +12,22 @@ extern "C" {
 
     #include <cstdio>
     int yyerror ( const char * pString ) {
-        printf("Line : %d, Message : %s\n", yylineno, pString);
+        (void) printf("Line : %d, Message : %s\n", yylineno, pString);
         return 0;
     }
 }
 
 
 extern int yyparse ();
+
+#include <CDS/DoubleLinkedList>
+
+void parseStateTree ( cds :: PointerBase < State > const & state, int tabCount ) noexcept { // NOLINT(misc-no-recursion)
+    std :: cout << "  "_s * tabCount << state->toString() << '\n';
+    for ( auto & child : state->children() ) {
+        parseStateTree(child, tabCount + 1);
+    }
+}
 
 int main ( int argc, char ** argv ) {
 
@@ -33,7 +43,9 @@ int main ( int argc, char ** argv ) {
     }
 
     yyin = sourceFile;
-    yyparse();
+    (void) yyparse();
+
+    parseStateTree ( State :: rootState(), 0 );
 
     return 0;
 }

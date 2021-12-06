@@ -8,8 +8,17 @@ include_directories(work/src/dependencies/CDS/include)
 include_directories(work)
 include_directories(work/src)
 include_directories(work/src/lang)
+include_directories(work/src/lang/obj)
 include_directories(work/src/pre)
 include_directories(work/src/run)
+
+add_custom_command(
+        OUTPUT
+            ${CMAKE_CURRENT_BINARY_DIR}/.clean
+
+        COMMAND bash ../work/tools/clean.sh
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 add_custom_command(
         OUTPUT
@@ -31,13 +40,24 @@ add_executable(
         ${CMAKE_CURRENT_BINARY_DIR}/tmp/syntax.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/tmp/tokenUtils.o
 
+        work/src/lang/obj/State.cpp
+        work/src/lang/obj/State.hpp
+
         work/src/run/main.cpp
 )
 
-add_executable(
+add_library(
         do_not_compile
 
         work/src/lang/tokenUtils.c
+)
+
+add_executable(
+        _clean
+
+        work/src/lang/tokenUtils.c
+
+        ${CMAKE_CURRENT_BINARY_DIR}/.clean
 )
 
 target_include_directories(do_not_compile PRIVATE work/src/lang)

@@ -13,6 +13,10 @@
 
 
 PrivateVariable(Type(StringLiteral), realNumberCharacters) = ".0123456789";
+
+PrivateVariable(Type(StringLiteral), base2Characters) = "01";
+PrivateVariable(Type(StringLiteral), base8Characters) = "01234567";
+PrivateVariable(Type(StringLiteral), base10Characters) = "0123456789";
 PrivateVariable(Type(StringLiteral), base16Characters) = "0123456789ABCDEFabcdef";
 
 
@@ -299,135 +303,559 @@ Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base16LongLongUnsigned) 
 }
 
 Function(Type(SignedLongLiteral), positiveLongLiteral_Base10) ( Type(InputText) inputText ) {
-
+    return strtol ( inputText, NULL, 10 );
 }
 
 Function(Type(SignedLongLiteral), negativeLongLiteral_Base10) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)( inputText, Variable(base10Characters) );
 
+    if ( firstOccurrence == NULL ) {
+        Call(error) ( "NegativeLongLiteral Error : base = %d, modifiers = %s, value = %s", 10, "none", inputText );
+        returnValue = 0;
+    } else {
+        returnValue = - strtoll ( inputText, NULL, 10 );
+    }
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), positiveLongLiteral_Base10Long) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
 
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 1 ] = '\0';
+
+    returnValue = strtoll ( temporaryBuffer, NULL, 10 );
+
+    free ( temporaryBuffer );
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), negativeLongLiteral_Base10Long) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup (inputText);
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 1 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)( temporaryBuffer, Variable(base10Characters) );
+
+    if ( firstOccurrence == NULL ) {
+        Call(error) ( "NegativeLongLiteral Error : base = %d, modifiers = %s, value = %s", 10, "long", inputText );
+        returnValue = 0l;
+    } else {
+        returnValue = - strtoll ( inputText, NULL, 10 );
+    }
+
+    free ( temporaryBuffer );
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), positiveLongLiteral_Base10LongLong) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
 
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    returnValue = strtoll ( temporaryBuffer, NULL, 10 );
+
+    free ( temporaryBuffer );
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), negativeLongLiteral_Base10LongLong) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup (inputText);
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)( temporaryBuffer, Variable(base10Characters) );
+
+    if ( firstOccurrence == NULL ) {
+        Call(error) ( "NegativeLongLiteral Error : base = %d, modifiers = %s, value = %s", 10, "long long", inputText );
+        returnValue = 0ll;
+    } else {
+        returnValue = - strtoll ( inputText, NULL, 10 );
+    }
+
+    free ( temporaryBuffer );
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base10Unsigned) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
 
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 1 ] = '\0';
+
+    returnValue = strtoull ( temporaryBuffer, NULL, 10 );
+
+    free ( temporaryBuffer );
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base10UnsignedLong) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
 
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    returnValue = strtoull ( temporaryBuffer, NULL, 10 );
+
+    free ( temporaryBuffer );
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base10UnsignedLongLong) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
 
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 3 ] = '\0';
+
+    returnValue = strtoull ( temporaryBuffer, NULL, 10 );
+
+    free ( temporaryBuffer );
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base10LongUnsigned) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
 
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    returnValue = strtoull ( temporaryBuffer, NULL, 10 );
+
+    free ( temporaryBuffer );
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base10LongLongUnsigned) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
 
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 3 ] = '\0';
+
+    returnValue = strtoull ( temporaryBuffer, NULL, 10 );
+
+    free ( temporaryBuffer );
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), positiveLongLiteral_Base8) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(inputText, "0") + 1, Variable(base8Characters));
 
+    if ( firstOccurrence == NULL ) {
+        Call(error)("PositiveLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "none", inputText);
+        returnValue = 00;
+    } else {
+        returnValue = strtoll ( firstOccurrence, NULL, 8 );
+    }
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), negativeLongLiteral_Base8) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(inputText, "0") + 1, Variable(base8Characters));
 
+    if ( firstOccurrence == NULL ) {
+        Call(error)("NegativeLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "none", inputText);
+        returnValue = 00;
+    } else {
+        returnValue = - strtoll ( firstOccurrence, NULL, 8 );
+    }
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), positiveLongLiteral_Base8Long) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 1 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "0") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("PositiveLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "long", inputText);
+        returnValue = 00L;
+    } else {
+        returnValue = strtoll ( firstOccurrence, NULL, 8 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), negativeLongLiteral_Base8Long) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 1 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "0") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("NegativeLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "long", inputText);
+        returnValue = 00L;
+    } else {
+        returnValue = - strtoll ( firstOccurrence, NULL, 8 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), positiveLongLiteral_Base8LongLong) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "0") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("PositiveLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "long long", inputText);
+        returnValue = 00LL;
+    } else {
+        returnValue = strtoll ( firstOccurrence, NULL, 8 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), negativeLongLiteral_Base8LongLong) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "0") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("NegativeLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "long long", inputText);
+        returnValue = 00L;
+    } else {
+        returnValue = - strtoll ( firstOccurrence, NULL, 8 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base8Unsigned) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 1 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "0") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "none", inputText);
+        returnValue = 00U;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 8 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base8UnsignedLong) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "0") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "long", inputText);
+        returnValue = 00UL;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 8 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base8UnsignedLongLong) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 3 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "0") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "long long", inputText);
+        returnValue = 00ULL;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 8 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base8LongUnsigned) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "0") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "long", inputText);
+        returnValue = 00LU;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 8 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base8LongLongUnsigned) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 3 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "0") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 8, "long long", inputText);
+        returnValue = 00LLU;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 8 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), positiveLongLiteral_Base2) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(inputText, "bB") + 1, Variable(base8Characters));
 
+    if ( firstOccurrence == NULL ) {
+        Call(error)("PositiveLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "none", inputText);
+        returnValue = 0b00;
+    } else {
+        returnValue = strtoll ( firstOccurrence, NULL, 2 );
+    }
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), negativeLongLiteral_Base2) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(inputText, "bB") + 1, Variable(base8Characters));
 
+    if ( firstOccurrence == NULL ) {
+        Call(error)("NegativeLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "none", inputText);
+        returnValue = 0b00;
+    } else {
+        returnValue = - strtoll ( firstOccurrence, NULL, 2 );
+    }
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), positiveLongLiteral_Base2Long) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 1 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "bB") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("PositiveLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "long", inputText);
+        returnValue = 0b00L;
+    } else {
+        returnValue = strtoll ( firstOccurrence, NULL, 2 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), negativeLongLiteral_Base2Long) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 1 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "bB") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("NegativeLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "long", inputText);
+        returnValue = 0b00L;
+    } else {
+        returnValue = - strtoll ( firstOccurrence, NULL, 2 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), positiveLongLiteral_Base2LongLong) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "bB") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("PositiveLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "long long", inputText);
+        returnValue = 0b00LL;
+    } else {
+        returnValue = strtoll ( firstOccurrence, NULL, 2 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(SignedLongLiteral), negativeLongLiteral_Base2LongLong) ( Type(InputText) inputText ) {
+    Type(SignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "bB") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("NegativeLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "long long", inputText);
+        returnValue = 0b00L;
+    } else {
+        returnValue = - strtoll ( firstOccurrence, NULL, 2 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base2Unsigned) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 1 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "bB") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "none", inputText);
+        returnValue = 0b00U;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 2 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base2UnsignedLong) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "bB") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "long", inputText);
+        returnValue = 0b00UL;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 2 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base2UnsignedLongLong) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 3 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "bB") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "long long", inputText);
+        returnValue = 0b00ULL;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 2 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base2LongUnsigned) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 2 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "bB") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "long", inputText);
+        returnValue = 0b00LU;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 2 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 Function(Type(UnsignedLongLiteral), positiveLongLiteral_Base2LongLongUnsigned) ( Type(InputText) inputText ) {
+    Type(UnsignedLongLiteral) returnValue;
 
+    Type(Buffer) temporaryBuffer = strdup ( inputText );
+    temporaryBuffer [ strlen ( temporaryBuffer ) - 3 ] = '\0';
+
+    Type(InputText) firstOccurrence = Call(skipUntilFirst)(Call(skipUntilFirst)(temporaryBuffer, "bB") + 1, Variable(base8Characters));
+
+    if ( firstOccurrence == NULL ) {
+        Call(error)("UnsignedLongLiteral error : base = %d, modifiers = %s, value = %s", 2, "long long", inputText);
+        returnValue = 0b00LLU;
+    } else {
+        returnValue = strtoull ( firstOccurrence, NULL, 2 );
+    }
+
+    free ( temporaryBuffer );
+
+    return returnValue;
 }
 
 
