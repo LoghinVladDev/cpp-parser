@@ -1,9 +1,34 @@
 %{
-    extern "C" {
-        int yylex();
-        int yyerror( char const * );
-    }
+    #include <yaccDeps.h>
 %}
+
+%union { 
+
+    char                    syntaxCharLiteral;
+
+    signed long long int    syntaxSignedLongLiteral;
+    unsigned long long int  syntaxUnsignedLongLiteral;
+
+    float                   syntaxFloatLiteral;
+    double                  syntaxDoubleLiteral;
+
+    char const *            syntaxStringLiteral;
+
+}
+
+
+%token < syntaxStringLiteral >          Token;
+
+%token < syntaxCharLiteral >            CharLiteral;
+
+%token < syntaxSignedLongLiteral >      SignedLongLiteral;
+%token < syntaxUnsignedLongLiteral >    UnsignedLongLiteral;
+
+%token < syntaxFloatLiteral >           FloatLiteral;
+%token < syntaxDoubleLiteral >          DoubleLiteral;
+
+%token < syntaxStringLiteral >          StringLiteral;
+
 
 %start Source
 
