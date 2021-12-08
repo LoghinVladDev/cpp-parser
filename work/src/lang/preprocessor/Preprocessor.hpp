@@ -27,11 +27,11 @@ private:
     Preprocessor () noexcept;
 
     auto static instance () noexcept -> Preprocessor &;
-    auto static preprocessLines ( cds :: Collection < cds :: String > const &, cds :: Collection < cds :: SharedPointer < Define > > const & ) noexcept -> cds :: String;
-    auto static include ( cds :: String const &, cds :: Collection < cds :: SharedPointer < Define > > const & ) noexcept (false) -> cds :: String;
+    auto static preprocessLines ( cds :: Collection < cds :: String > const &, cds :: Collection < cds :: SharedPointer < Define > > & ) noexcept -> cds :: String;
+    auto static include ( cds :: String const &, cds :: Collection < cds :: SharedPointer < Define > > & ) noexcept (false) -> cds :: String;
 
 public:
-    auto static preprocess ( cds :: Path const &, cds :: Collection < cds :: SharedPointer < Define > > const & ) noexcept -> cds :: String;
+    auto static preprocess ( cds :: Path const &, cds :: Collection < cds :: SharedPointer < Define > > & ) noexcept -> cds :: String;
     auto static addIncludeDirectory ( cds :: Path const & ) noexcept -> void;
 };
 

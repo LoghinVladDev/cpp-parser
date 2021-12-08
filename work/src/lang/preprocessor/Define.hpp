@@ -16,12 +16,18 @@ namespace cds {
 
 class Define : public cds :: Object {
 private:
-    cds :: String name;
+    cds :: String _name;
     cds :: UniquePointer < cds :: Boolean > paramsEnabled;
     cds :: UniquePointer < cds :: Array < cds :: String > > parameters;
     cds :: String body;
 
+    auto load ( cds :: String const & ) noexcept -> void;
+
 public:
+    __CDS_NoDiscard constexpr auto name () const noexcept -> cds :: String const & {
+        return this->_name;
+    }
+
     explicit Define ( cds :: String const & ) noexcept (false);
     __CDS_NoDiscard auto toString() const noexcept -> cds :: String override;
 };

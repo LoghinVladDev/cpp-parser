@@ -25,6 +25,7 @@ extern int yyparse ();
 #include <Preprocessor.hpp>
 #include <CDS/Path>
 #include <Define.hpp>
+#include <CDS/HashMap>
 
 void parseStateTree ( cds :: PointerBase < State > const & state, int tabCount ) noexcept { // NOLINT(misc-no-recursion)
     std :: cout << "  "_s * tabCount << state->toString() << '\n';
@@ -68,12 +69,22 @@ int main ( int argc, char ** argv ) {
         }
     }
 
-    auto preprocessedSources = sourcePaths.sequence().map([](Path const & path){
-        return Pair { path, Preprocessor :: preprocess ( path, Array < SharedPointer < Define > > {} ) };
+    auto sourcesDefines = HashMap < Path, Array < SharedPointer < Define > > >();
+
+    auto preprocessedSources = sourcePaths.sequence().map([&](Path const & path){
+        (void) sourcesDefines.emplace ( path, { } );
+        return Pair { path, Preprocessor :: preprocess ( path, sourcesDefines[path] ) };
     }).toLinkedList();
 
-    preprocessedSources.forEach([](auto & source){
+    preprocessedSources.forEach([& sourcesDefines](auto & source){
         std :: cout << "-"_s * 20 + " Source '" << source.first().nodeName() << "'" << "-"_s * 20 << "\n" << source.second() << "\n\n";
+        std :: cout << "-"_s * 20 + " Defines for '" << source.first().nodeName() << "'" << "-"_s * 20 << "\n";
+
+        for ( auto & define : sourcesDefines[source.first()] ) {
+            std :: cout << "-\t" << define.toString() << "\n";
+        }
+
+        std :: cout << "-"_s * 20 + " End of Defines " << "-"_s * 20 << "\n";
     });
 
 //    FILE * sourceFile = fopen ( argv[1], "r" );

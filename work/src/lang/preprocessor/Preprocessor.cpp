@@ -23,6 +23,22 @@ auto Preprocessor :: instance() noexcept -> Preprocessor & {
 
 #include <Define.hpp>
 
+class Warning : public Exception {
+public:
+    explicit Warning ( String const & message ) noexcept :
+            Exception ( message ) {
+
+    }
+};
+
+class Error : public Exception {
+public:
+    explicit Error ( String const & error ) noexcept :
+            Exception ( error ) {
+
+    }
+};
+
 auto static load ( Path const & path ) noexcept -> String {
     std :: fstream source;
     std :: stringstream stream;
@@ -53,19 +69,19 @@ constexpr auto static directiveTypeAsString ( DirectiveType type ) noexcept -> S
     StringLiteral code;
 
     switch ( type ) {
-        case DirectiveType :: Include:       { code = "include";     break; }
-        case DirectiveType :: Define:        { code = "define";      break; }
-        case DirectiveType :: Undefine:      { code = "undef";       break; }
-        case DirectiveType :: If:            { code = "if";          break; }
-        case DirectiveType :: ElseIf:        { code = "elif";        break; }
-        case DirectiveType :: Else:          { code = "else";        break; }
-        case DirectiveType :: EndIf:         { code = "endif";       break; }
-        case DirectiveType :: IfDefined:     { code = "ifdef";       break; }
-        case DirectiveType :: IfNotDefined:  { code = "ifndef";      break; }
-        case DirectiveType :: Warning:       { code = "warning";     break; }
-        case DirectiveType :: Error:         { code = "error";       break; }
-        case DirectiveType :: Pragma:        { code = "pragma";      break; }
-        default:            { break; }
+        case DirectiveType :: Include:          { code = "include";     break; }
+        case DirectiveType :: Define:           { code = "define";      break; }
+        case DirectiveType :: Undefine:         { code = "undef";       break; }
+        case DirectiveType :: If:               { code = "if";          break; }
+        case DirectiveType :: ElseIf:           { code = "elif";        break; }
+        case DirectiveType :: Else:             { code = "else";        break; }
+        case DirectiveType :: EndIf:            { code = "endif";       break; }
+        case DirectiveType :: IfDefined:        { code = "ifdef";       break; }
+        case DirectiveType :: IfNotDefined:     { code = "ifndef";      break; }
+        case DirectiveType :: Warning:          { code = "warning";     break; }
+        case DirectiveType :: Error:            { code = "error";       break; }
+        case DirectiveType :: Pragma:           { code = "pragma";      break; }
+        case DirectiveType :: InvalidDirective: { code = "invalid";     break; }
     }
 
     return code;
@@ -103,7 +119,7 @@ auto static extractPreprocessData ( String const & line ) noexcept -> Pair < Dir
 
 #include <CDS/HashSet>
 
-auto Preprocessor :: include ( String const & includeData, Collection < SharedPointer < Define > > const & defines ) noexcept (false) -> String {
+auto Preprocessor :: include ( String const & includeData, Collection < SharedPointer < Define > > & defines ) noexcept (false) -> String { // NOLINT(misc-no-recursion)
     bool tryRelative = false;
     String filePath;
 
@@ -134,7 +150,7 @@ auto Preprocessor :: include ( String const & includeData, Collection < SharedPo
         }
     }
 
-    throw IllegalArgumentException ( filePath + " not found" );
+    throw Error ( filePath + " not found" );
 }
 
 Preprocessor :: Preprocessor() noexcept :
@@ -146,9 +162,8 @@ auto Preprocessor :: addIncludeDirectory ( Path const & path ) noexcept -> void 
     Preprocessor :: instance()._includedDirectories->add ( path.copy() );
 }
 
-auto Preprocessor :: preprocessLines ( Collection < String > const & lines, Collection < SharedPointer < Define > > const & defines ) noexcept -> String { // NOLINT(misc-no-recursion)
+auto Preprocessor :: preprocessLines ( Collection < String > const & lines, Collection < SharedPointer < Define > > & defines ) noexcept -> String { // NOLINT(misc-no-recursion)
     Array < String > preprocessedLines;
-    Array < SharedPointer < Define > > currentDefines ( defines.begin(), defines.end() );
 
     for ( auto const & line : lines ) {
 
@@ -156,54 +171,86 @@ auto Preprocessor :: preprocessLines ( Collection < String > const & lines, Coll
         if ( trimmed.startsWith("#") ) {
             auto preprocessData = extractPreprocessData( trimmed.removePrefix("#").trim() );
 
-            switch ( preprocessData.first() ) {
-                case DirectiveType :: Include: {
-                    try {
-                        preprocessedLines.add ( include ( preprocessData.second(), currentDefines ) );
-                    } catch ( Exception const & e ) {
-                        std :: cerr << "Error : " << e.toString() << '\n';
-                    }
+            try {
 
-                    break;
+                switch ( preprocessData.first() ) {
+                    case DirectiveType :: Include: {
+                        preprocessedLines.add ( include ( preprocessData.second(), defines ) );
+                        break;
+                    }
+                    case DirectiveType :: Define: {
+                        bool removalDone = false;
+                        auto newDefine = new Define(preprocessData.second());
+
+                        for ( auto const & d : defines ) {
+                            if ( d->name() == newDefine->name() ) {
+                                (void) defines.removeFirst( d );
+                                removalDone = true;
+                                break;
+                            }
+                        }
+
+                        defines.add(newDefine);
+                        if ( removalDone ) {
+                            throw Warning ( "Redefinition of Define '" + newDefine->name() + "'" );
+                        }
+
+                        break;
+                    }
+                    case DirectiveType :: Undefine: {
+                        bool removalDone = false;
+
+                        for ( auto const & d : defines ) {
+                            if ( d->name() == preprocessData.second() ) {
+                                (void) defines.removeFirst( d );
+                                removalDone = true;
+                                break;
+                            }
+                        }
+
+                        if ( ! removalDone ) {
+                            throw Warning ( "Define '" + preprocessData.second() + "' does not exist" );
+                        }
+
+                        break;
+                    }
+                    case DirectiveType :: If:
+                        break;
+                    case DirectiveType :: ElseIf:
+                        break;
+                    case DirectiveType :: Else:
+                        break;
+                    case DirectiveType :: EndIf:
+                        break;
+                    case DirectiveType :: IfDefined:
+                        break;
+                    case DirectiveType :: IfNotDefined:
+                        break;
+                    case DirectiveType :: Warning:
+                        break;
+                    case DirectiveType :: Error:
+                        break;
+                    case DirectiveType :: Pragma:
+                        break;
+                    case DirectiveType :: InvalidDirective:
+                        break;
                 }
-                case DirectiveType :: Define:
-                    try {
-                        currentDefines.add ( new Define ( preprocessData.second() ) );
-                    } catch ( Exception const & e ) {
-                        std :: cerr << "Error : " << e.toString() << '\n';
-                    }
 
-                    break;
-                case DirectiveType :: Undefine:
-                    break;
-                case DirectiveType :: If:
-                    break;
-                case DirectiveType :: ElseIf:
-                    break;
-                case DirectiveType :: Else:
-                    break;
-                case DirectiveType :: EndIf:
-                    break;
-                case DirectiveType :: IfDefined:
-                    break;
-                case DirectiveType :: IfNotDefined:
-                    break;
-                case DirectiveType :: Warning:
-                    break;
-                case DirectiveType :: Error:
-                    break;
-                case DirectiveType :: Pragma:
-                    break;
-                case DirectiveType :: InvalidDirective:
-                    break;
+            } catch ( Warning const & e ) {
+                std :: cout << "Warning : " << e.toString() << '\n';
+            } catch ( Error const & e ) {
+                std :: cerr << "Error : " << e.toString() << '\n';
+            } catch ( Exception const & e ) {
+                std :: cerr << "Unexpected Error : " << e.toString() << '\n';
             }
+
         } else {
             preprocessedLines.add(line);
         }
     }
 
-    std :: cout << "Defines at end of parse source\n";
-    std :: cout << currentDefines << '\n';
+//    std :: cout << "Defines at end of parse source\n";
+//    std :: cout << defines << '\n';
 
     return String :: join ( preprocessedLines, "\n" );
 }
@@ -256,6 +303,6 @@ auto static uncomment ( String const & source ) noexcept -> String {
     return uncommentedCode;
 }
 
-auto Preprocessor :: preprocess ( Path const & path, Collection < SharedPointer < Define > > const & defines ) noexcept -> String { // NOLINT(misc-no-recursion)
+auto Preprocessor :: preprocess ( Path const & path, Collection < SharedPointer < Define > > & defines ) noexcept -> String { // NOLINT(misc-no-recursion)
     return preprocessLines ( uncomment ( load ( path ) ) .split ( '\n' ), defines );
 }
