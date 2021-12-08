@@ -9,6 +9,7 @@ include_directories(work)
 include_directories(work/src)
 include_directories(work/src/lang)
 include_directories(work/src/lang/obj)
+include_directories(work/src/lang/preprocessor)
 include_directories(work/src/pre)
 include_directories(work/src/run)
 
@@ -42,6 +43,12 @@ add_executable(
 
         work/src/lang/obj/State.cpp
         work/src/lang/obj/State.hpp
+
+        work/src/lang/preprocessor/Preprocessor.cpp
+        work/src/lang/preprocessor/Preprocessor.hpp
+
+        work/src/lang/preprocessor/Define.cpp
+        work/src/lang/preprocessor/Define.hpp
 
         work/src/run/main.cpp
 )

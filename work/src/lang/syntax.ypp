@@ -337,16 +337,15 @@ Source:
 
 Statements: 
     Statements Statement { 
-        $$ = new State ( State :: Statements, { $1, $2 } );  
+        $1->addState ( $2 );
+        $$ = $1;
     } | 
     Statement { 
         $$ = new State ( State :: Statements, { $1 } );
     };
 
-Statement: 
-
-    { 
-        $$ = new State ( State :: Statement ); 
+Statement: {
+        $$ = new State ( State :: Statement );
     };
-
+    
 %%

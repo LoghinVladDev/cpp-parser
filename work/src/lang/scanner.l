@@ -26,24 +26,6 @@ LiteralCharacterRule            \'[:blank:]|\\.\'
 TokenRule                       [a-zA-Z_]([a-zA-Z0-9_]*)
 
 
-PreprocessorIfRule              [#][ \t]*"if"
-PreprocessorElseIfRule          [#][ \t]*"elif"
-PreprocessorElseRule            [#][ \t]*"else"
-PreprocessorEndIfRule           [#][ \t]*"endif"
-
-
-PreprocessorIfDefinedRule       [#][ \t]*"ifdef"
-PreprocessorIfNotDefinedRule    [#][ \t]*"ifndef"
-PreprocessorDefineRule          [#][ \t]*"define"
-PreprocessorUndefRule           [#][ \t]*"undef"
-
-PreprocessorIncludeRule         [#][ \t]*"include"
-PreprocessorLineRule            [#][ \t]*"line"
-PreprocessorErrorRule           [#][ \t]*"error"
-PreprocessorWarningRule         [#][ \t]*"warning"
-PreprocessorPragmaRule          [#][ \t]*"pragma"
-
-
 CommentStartRule                "/""*"
 InlineCommentRule               "/""/"[^\n]*
 
@@ -61,31 +43,6 @@ InlineCommentRule               "/""/"[^\n]*
 <CommentStartRuleBody>[^*/]     BEGIN(CommentStartRuleHeader);
 
 {InlineCommentRule}             ;
-
-
-{PreprocessorIfRule}            { return PreprocessorIf; }
-{PreprocessorElseIfRule}        { return PreprocessorElseIf; }
-{PreprocessorElseRule}          { return PreprocessorElse; }
-{PreprocessorEndIfRule}         { return PreprocessorEndIf; }
-
-{PreprocessorIfDefinedRule}     { return PreprocessorIfDefined; }
-{PreprocessorIfNotDefinedRule}  { return PreprocessorIfNotDefined; }
-{PreprocessorDefineRule}        { return PreprocessorDefine; }
-{PreprocessorUndefRule}         { return PreprocessorUndef; }
-
-{PreprocessorIncludeRule}       { return PreprocessorInclude; }
-{PreprocessorLineRule}          { return PreprocessorLine; }
-{PreprocessorErrorRule}         { return PreprocessorError; }
-{PreprocessorWarningRule}       { return PreprocessorWarning; }
-{PreprocessorPragmaRule}        { return PreprocessorPragma; }
-
-"defined"                       { return PreprocessorDefined; }
-"__has_include"                 { return PreprocessorHasInclude; }
-"__has_cpp_attribute"           { return PreprocessorHasCppAttribute; }
-"_Pragma"                       { return Preprocessor_Pragma; }
-
-"#"                             { return PreprocessorOperatorStringify; }
-"##"                            { return PreprocessorOperatorConcatenate; }
 
 "alignas"                       { return KeywordAlignAs; }
 "alignof"                       { return KeywordAlignOf; }
