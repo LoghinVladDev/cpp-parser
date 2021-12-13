@@ -10,6 +10,8 @@ include_directories(work/src)
 include_directories(work/src/lang)
 include_directories(work/src/lang/obj)
 include_directories(work/src/lang/preprocessor)
+include_directories(work/src/lang/interpreter)
+include_directories(work/src/lang/error)
 include_directories(work/src/pre)
 include_directories(work/src/run)
 
@@ -49,6 +51,15 @@ add_executable(
 
         work/src/lang/preprocessor/Define.cpp
         work/src/lang/preprocessor/Define.hpp
+
+        work/src/lang/interpreter/Interpreter.cpp
+        work/src/lang/interpreter/Interpreter.hpp
+
+        work/src/lang/error/Error.cpp
+        work/src/lang/error/Error.hpp
+
+        work/src/lang/error/Warning.cpp
+        work/src/lang/error/Warning.hpp
 
         work/src/run/main.cpp
 )

@@ -28,6 +28,8 @@ public:
         return this->_name;
     }
 
+    auto addToBody ( cds :: String const & ) noexcept -> void;
+
     explicit Define ( cds :: String const & ) noexcept (false);
     __CDS_NoDiscard auto toString() const noexcept -> cds :: String override;
 };

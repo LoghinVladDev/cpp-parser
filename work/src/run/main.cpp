@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <State.hpp>
+#include <Interpreter.hpp>
 
 extern "C" {
 
@@ -26,6 +27,7 @@ extern int yyparse ();
 #include <CDS/Path>
 #include <Define.hpp>
 #include <CDS/HashMap>
+#include <CDS/Stack>
 
 void parseStateTree ( cds :: PointerBase < State > const & state, int tabCount ) noexcept { // NOLINT(misc-no-recursion)
     std :: cout << "  "_s * tabCount << state->toString() << '\n';
@@ -40,19 +42,19 @@ Array < String > includeDirectoryValidArgument = { "-I" };
 
 int main ( int argc, char ** argv ) {
 
+    Interpreter interpreter;
+
     if ( argc == 1 ) {
         std :: cerr << "Error : No input file specified\n";
         return 0;
     }
-
-    DoubleLinkedList < Path > sourcePaths;
 
     for ( int i = 1; i < argc; ++ i ) { // NOLINT(clion-misra-cpp2008-6-5-3)
         if ( includeDirectoryValidArgument.contains(String(argv[i])) ) {
             ++i;
 
             try {
-                Preprocessor :: addIncludeDirectory( argv[i] );
+                interpreter.addIncludeDirectory( argv[i] );
             } catch ( Exception const & invalidPath ) {
                 std :: cerr << "Error : " << argv[i] << " is not a directory\n";
             }
@@ -60,7 +62,7 @@ int main ( int argc, char ** argv ) {
         } else {
 
             try {
-                sourcePaths.add(argv[i]);
+                interpreter.addSource(argv[i]);
             } catch (Exception const &invalidPath) {
                 std::cerr << "Error : " << argv[i] << " is not a source file\n";
                 return 0;
@@ -69,23 +71,7 @@ int main ( int argc, char ** argv ) {
         }
     }
 
-    auto sourcesDefines = HashMap < Path, Array < SharedPointer < Define > > >();
-
-    auto preprocessedSources = sourcePaths.sequence().map([&](Path const & path){
-        (void) sourcesDefines.emplace ( path, { } );
-        return Pair { path, Preprocessor :: preprocess ( path, sourcesDefines[path] ) };
-    }).toLinkedList();
-
-    preprocessedSources.forEach([& sourcesDefines](auto & source){
-        std :: cout << "-"_s * 20 + " Source '" << source.first().nodeName() << "'" << "-"_s * 20 << "\n" << source.second() << "\n\n";
-        std :: cout << "-"_s * 20 + " Defines for '" << source.first().nodeName() << "'" << "-"_s * 20 << "\n";
-
-        for ( auto & define : sourcesDefines[source.first()] ) {
-            std :: cout << "-\t" << define.toString() << "\n";
-        }
-
-        std :: cout << "-"_s * 20 + " End of Defines " << "-"_s * 20 << "\n";
-    });
+    interpreter.start();
 
 //    FILE * sourceFile = fopen ( argv[1], "r" );
 //    if ( sourceFile == nullptr ) {

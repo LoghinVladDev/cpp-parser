@@ -26,7 +26,29 @@ auto Define::toString() const noexcept -> String {
 }
 
 auto Define :: load ( String const & definition ) noexcept -> void {
-    auto nameAndBody = definition.trim().split(" (");
+    _name = definition.trim().split(" (")[0];
 
-    _name = nameAndBody[0];
+    auto bodyWithParams = definition.removePrefix(_name).trim();
+
+    if ( ! bodyWithParams.empty() ) {
+
+        if ( bodyWithParams.startsWith("(") ) {
+            * paramsEnabled = true;
+            (void) bodyWithParams
+                .substr ( 0, bodyWithParams.findFirst(')') )
+                .removePrefix("(").removeSuffix(")")
+                .trim().split(",")
+                .sequence().onEach([](auto & str){ (void) str.trim(); })
+                .toArray( * parameters );
+
+            bodyWithParams = bodyWithParams.substr(bodyWithParams.findFirst(')') + 1).trim();
+        }
+
+    }
+
+    body = bodyWithParams;
+}
+
+auto Define :: addToBody( String const & text ) noexcept -> void {
+    this->body += " " + text;
 }

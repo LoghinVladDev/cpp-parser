@@ -4,18 +4,6 @@
 
 #include "Preprocessor.hpp"
 
-using namespace cds; // NOLINT(clion-misra-cpp2008-7-3-4)
-
-auto Preprocessor :: instance() noexcept -> Preprocessor & {
-    static UniquePointer < Preprocessor > preprocessor;
-
-    if ( preprocessor == nullptr ) {
-        preprocessor = new Preprocessor();
-    }
-
-    return * preprocessor;
-}
-
 #include <fstream>
 #include <sstream>
 
@@ -23,237 +11,13 @@ auto Preprocessor :: instance() noexcept -> Preprocessor & {
 
 #include <Define.hpp>
 
-class Warning : public Exception {
-public:
-    explicit Warning ( String const & message ) noexcept :
-            Exception ( message ) {
-
-    }
-};
-
-class Error : public Exception {
-public:
-    explicit Error ( String const & error ) noexcept :
-            Exception ( error ) {
-
-    }
-};
-
-auto static load ( Path const & path ) noexcept -> String {
-    std :: fstream source;
-    std :: stringstream stream;
-
-    source.open( path.toString(), std :: ios :: in );
-
-    stream << source.rdbuf();
-    return stream.str();
-}
-
-enum class DirectiveType {
-    Include,
-    Define,
-    Undefine,
-    If,
-    ElseIf,
-    Else,
-    EndIf,
-    IfDefined,
-    IfNotDefined,
-    Warning,
-    Error,
-    Pragma,
-    InvalidDirective
-};
-
-constexpr auto static directiveTypeAsString ( DirectiveType type ) noexcept -> StringLiteral {
-    StringLiteral code;
-
-    switch ( type ) {
-        case DirectiveType :: Include:          { code = "include";     break; }
-        case DirectiveType :: Define:           { code = "define";      break; }
-        case DirectiveType :: Undefine:         { code = "undef";       break; }
-        case DirectiveType :: If:               { code = "if";          break; }
-        case DirectiveType :: ElseIf:           { code = "elif";        break; }
-        case DirectiveType :: Else:             { code = "else";        break; }
-        case DirectiveType :: EndIf:            { code = "endif";       break; }
-        case DirectiveType :: IfDefined:        { code = "ifdef";       break; }
-        case DirectiveType :: IfNotDefined:     { code = "ifndef";      break; }
-        case DirectiveType :: Warning:          { code = "warning";     break; }
-        case DirectiveType :: Error:            { code = "error";       break; }
-        case DirectiveType :: Pragma:           { code = "pragma";      break; }
-        case DirectiveType :: InvalidDirective: { code = "invalid";     break; }
-    }
-
-    return code;
-}
-
-auto static extractPreprocessData ( String const & line ) noexcept -> Pair < DirectiveType, String > {
-    if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: Include ) ) ) {
-        return { DirectiveType :: Include, line.removePrefix( directiveTypeAsString ( DirectiveType :: Include ) ).trim() };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: Define ) ) ) {
-        return { DirectiveType :: Define, line.removePrefix( directiveTypeAsString ( DirectiveType :: Define ) ).trim() };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: Undefine ) ) ) {
-        return { DirectiveType :: Undefine, line.removePrefix( directiveTypeAsString ( DirectiveType :: Undefine ) ).trim() };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: If ) ) ) {
-        return { DirectiveType :: If, line.removePrefix( directiveTypeAsString ( DirectiveType :: If ) ).trim() };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: ElseIf ) ) ) {
-        return { DirectiveType :: ElseIf, line.removePrefix( directiveTypeAsString ( DirectiveType :: ElseIf ) ).trim() };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: Else ) ) ) {
-        return { DirectiveType :: Else, "" };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: EndIf ) ) ) {
-        return { DirectiveType :: EndIf, "" };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: IfDefined ) ) ) {
-        return { DirectiveType :: IfDefined, line.removePrefix( directiveTypeAsString ( DirectiveType :: IfDefined ) ).trim() };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: IfNotDefined ) ) ) {
-        return { DirectiveType :: IfNotDefined, line.removePrefix( directiveTypeAsString ( DirectiveType :: IfNotDefined ) ).trim() };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: Warning ) ) ) {
-        return { DirectiveType :: Warning, line.removePrefix( directiveTypeAsString ( DirectiveType :: Warning ) ).trim() };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: Error ) ) ) {
-        return { DirectiveType :: Error, line.removePrefix( directiveTypeAsString ( DirectiveType :: Error ) ).trim() };
-    } else if ( line.startsWith ( directiveTypeAsString ( DirectiveType :: Pragma ) ) ) {
-        return { DirectiveType :: Pragma, line.removePrefix( directiveTypeAsString ( DirectiveType :: Pragma ) ).trim() };
-    } else {
-        return { DirectiveType :: InvalidDirective, "" };
-    }
-}
+#include <Error.hpp>
+#include <Warning.hpp>
 
 #include <CDS/HashSet>
+#include <CDS/Stack>
 
-auto Preprocessor :: include ( String const & includeData, Collection < SharedPointer < Define > > & defines ) noexcept (false) -> String { // NOLINT(misc-no-recursion)
-    bool tryRelative = false;
-    String filePath;
-
-    if ( includeData.startsWith("\"") ) {
-        tryRelative = true;
-        filePath = includeData.removePrefix("\"").removeSuffix("\"");
-    } else {
-        filePath = includeData.removePrefix("<").removeSuffix(">");
-    }
-
-    if ( tryRelative ) {
-        try {
-            Path relativePath = filePath;
-
-            return preprocess ( relativePath, defines );
-        } catch ( Exception const & err ) {
-
-        }
-    }
-
-    for ( auto const & includedDirectory : * Preprocessor :: instance()._includedDirectories ) {
-        try {
-            Path completePath = * includedDirectory / filePath;
-
-            return preprocess ( completePath, defines );
-        } catch ( Exception const & err ) {
-
-        }
-    }
-
-    throw Error ( filePath + " not found" );
-}
-
-Preprocessor :: Preprocessor() noexcept :
-        _includedDirectories( new Array < SharedPointer < Path > > ){
-
-}
-
-auto Preprocessor :: addIncludeDirectory ( Path const & path ) noexcept -> void {
-    Preprocessor :: instance()._includedDirectories->add ( path.copy() );
-}
-
-auto Preprocessor :: preprocessLines ( Collection < String > const & lines, Collection < SharedPointer < Define > > & defines ) noexcept -> String { // NOLINT(misc-no-recursion)
-    Array < String > preprocessedLines;
-
-    for ( auto const & line : lines ) {
-
-        auto trimmed = line.trim(" \t");
-        if ( trimmed.startsWith("#") ) {
-            auto preprocessData = extractPreprocessData( trimmed.removePrefix("#").trim() );
-
-            try {
-
-                switch ( preprocessData.first() ) {
-                    case DirectiveType :: Include: {
-                        preprocessedLines.add ( include ( preprocessData.second(), defines ) );
-                        break;
-                    }
-                    case DirectiveType :: Define: {
-                        bool removalDone = false;
-                        auto newDefine = new Define(preprocessData.second());
-
-                        for ( auto const & d : defines ) {
-                            if ( d->name() == newDefine->name() ) {
-                                (void) defines.removeFirst( d );
-                                removalDone = true;
-                                break;
-                            }
-                        }
-
-                        defines.add(newDefine);
-                        if ( removalDone ) {
-                            throw Warning ( "Redefinition of Define '" + newDefine->name() + "'" );
-                        }
-
-                        break;
-                    }
-                    case DirectiveType :: Undefine: {
-                        bool removalDone = false;
-
-                        for ( auto const & d : defines ) {
-                            if ( d->name() == preprocessData.second() ) {
-                                (void) defines.removeFirst( d );
-                                removalDone = true;
-                                break;
-                            }
-                        }
-
-                        if ( ! removalDone ) {
-                            throw Warning ( "Define '" + preprocessData.second() + "' does not exist" );
-                        }
-
-                        break;
-                    }
-                    case DirectiveType :: If:
-                        break;
-                    case DirectiveType :: ElseIf:
-                        break;
-                    case DirectiveType :: Else:
-                        break;
-                    case DirectiveType :: EndIf:
-                        break;
-                    case DirectiveType :: IfDefined:
-                        break;
-                    case DirectiveType :: IfNotDefined:
-                        break;
-                    case DirectiveType :: Warning:
-                        break;
-                    case DirectiveType :: Error:
-                        break;
-                    case DirectiveType :: Pragma:
-                        break;
-                    case DirectiveType :: InvalidDirective:
-                        break;
-                }
-
-            } catch ( Warning const & e ) {
-                std :: cout << "Warning : " << e.toString() << '\n';
-            } catch ( Error const & e ) {
-                std :: cerr << "Error : " << e.toString() << '\n';
-            } catch ( Exception const & e ) {
-                std :: cerr << "Unexpected Error : " << e.toString() << '\n';
-            }
-
-        } else {
-            preprocessedLines.add(line);
-        }
-    }
-
-//    std :: cout << "Defines at end of parse source\n";
-//    std :: cout << defines << '\n';
-
-    return String :: join ( preprocessedLines, "\n" );
-}
+using namespace cds; // NOLINT(clion-misra-cpp2008-7-3-4)
 
 auto static uncomment ( String const & source ) noexcept -> String {
     enum UncommentParseState {
@@ -303,6 +67,588 @@ auto static uncomment ( String const & source ) noexcept -> String {
     return uncommentedCode;
 }
 
-auto Preprocessor :: preprocess ( Path const & path, Collection < SharedPointer < Define > > & defines ) noexcept -> String { // NOLINT(misc-no-recursion)
-    return preprocessLines ( uncomment ( load ( path ) ) .split ( '\n' ), defines );
+auto Preprocessor :: instance() noexcept -> Preprocessor & {
+    static UniquePointer < Preprocessor > preprocessor;
+
+    if ( preprocessor == nullptr ) {
+        preprocessor = new Preprocessor();
+    }
+
+    return * preprocessor;
 }
+
+auto static load ( Path const & path ) noexcept -> String {
+    std :: fstream source;
+    std :: stringstream stream;
+
+    source.open( path.toString(), std :: ios :: in );
+
+    stream << source.rdbuf();
+    return stream.str();
+}
+
+auto Preprocessor :: Job :: include ( String const & includeData ) noexcept (false) -> String { // NOLINT(misc-no-recursion)
+    bool tryRelative = false;
+    String filePath;
+
+    if ( includeData.startsWith("\"") ) {
+        tryRelative = true;
+        filePath = includeData.removePrefix("\"").removeSuffix("\"");
+    } else {
+        filePath = includeData.removePrefix("<").removeSuffix(">");
+    }
+
+    if ( tryRelative ) {
+        try {
+            Path relativePath = filePath;
+
+            return this->start ( relativePath );
+        } catch ( Exception const & err ) {
+
+        }
+    }
+
+    for ( auto const & includedDirectory : * Preprocessor :: instance()._includedDirectories ) {
+        try {
+            Path completePath = * includedDirectory / filePath;
+
+            return this->start ( completePath );
+        } catch ( Exception const & err ) {
+
+        }
+    }
+
+    throw Error ( filePath + " not found" );
+}
+
+Preprocessor :: Preprocessor() noexcept :
+        _includedDirectories( new Array < SharedPointer < Path > > ){
+
+}
+
+auto Preprocessor :: addIncludeDirectory ( Path const & path ) noexcept -> void {
+    this->_includedDirectories->add ( path.copy() );
+}
+
+auto Preprocessor :: Job :: preprocessLines ( Collection < String > const & lines ) noexcept -> String { // NOLINT(misc-no-recursion)
+    Array < String > preprocessedLines;
+    Define * multiLineDefine = nullptr;
+
+    String multiLineIf;
+    String multiLineElseIf;
+
+    for ( auto const & line : lines ) {
+
+//        this->printBranchTrace( std::clog, line );
+
+        auto trimmed = line.trim(" \t");
+
+        if ( multiLineDefine != nullptr && this->inTrueBranch() ) {
+            multiLineDefine->addToBody( String(trimmed).removeSuffix("\\").trim() );
+
+            if ( ! trimmed.endsWith("\\") ) {
+                multiLineDefine = nullptr;
+            }
+
+            continue;
+        }
+
+        if ( ! multiLineIf.empty() && this->inTrueBranch() ) {
+            multiLineIf += String(trimmed).removeSuffix("\\").trim();
+
+            if ( ! trimmed.endsWith("\\") ) {
+                this->_if ( multiLineIf );
+                multiLineIf.clear();
+            }
+
+            continue;
+        }
+
+        if ( ! multiLineElseIf.empty() && this->inTrueBranch() ) {
+            multiLineElseIf += String(trimmed).removeSuffix("\\").trim();
+
+            if ( ! trimmed.endsWith("\\") ) {
+                this->elseIf ( multiLineElseIf );
+                multiLineElseIf.clear();
+            }
+
+            continue;
+        }
+
+        if ( trimmed.startsWith("#") ) {
+            auto preprocessData = extractPreprocessData( trimmed.removePrefix("#").trim() );
+
+            try {
+
+                switch ( preprocessData.first() ) {
+                    case DirectiveType :: Include: {
+                        if ( this->inTrueBranch() ) {
+                            preprocessedLines.add(this->include(preprocessData.second()));
+                        }
+                        break;
+                    }
+                    case DirectiveType :: Define: {
+                        if ( this->inTrueBranch() ) {
+                            this->define ( preprocessData.second(), multiLineDefine );
+                        }
+                        break;
+                    }
+                    case DirectiveType :: Undefine: {
+                        if ( this->inTrueBranch() ) {
+                            this->undefine ( preprocessData.second() );
+                        }
+                        break;
+                    }
+                    case DirectiveType :: If: {
+                        this->ifStart ( preprocessData.second(), multiLineIf );
+                        break;
+                    }
+                    case DirectiveType :: ElseIf: {
+                        this->elseIfStart ( preprocessData.second(), multiLineElseIf );
+                        break;
+                    }
+                    case DirectiveType :: Else: {
+                        this->_else();
+                        break;
+                    }
+                    case DirectiveType :: EndIf: {
+                        this->endIf();
+                        break;
+                    }
+                    case DirectiveType :: IfDefined: {
+                        this->ifDefined( preprocessData.second() );
+                        break;
+                    }
+                    case DirectiveType :: IfNotDefined: {
+                        this->ifNotDefined( preprocessData.second() );
+                        break;
+                    }
+                    case DirectiveType :: Warning:
+                        break;
+                    case DirectiveType :: Error:
+                        break;
+                    case DirectiveType :: Pragma:
+                        break;
+                    case DirectiveType :: InvalidDirective:
+                        break;
+                }
+
+            } catch ( Warning const & e ) {
+                std :: cout << "Warning : " << e.toString() << '\n';
+                std :: cout << "Occurred in " << ** ( includeBacktrace->begin() ) << '\n';
+
+                if ( includeBacktrace->size() > 1u ) {
+                    for ( auto it = ++ includeBacktrace->begin(), end = includeBacktrace->end(); it != end; ++ it ) { // NOLINT(clion-misra-cpp2008-8-0-1)
+                        std :: cout << "\tincluded from " << ** it << '\n';
+                    }
+                }
+
+                std :: cout << '\n';
+            } catch ( Error const & e ) {
+                std :: cerr << "Error : " << e.toString() << '\n';
+                std :: cerr << "Occurred in " << ** ( includeBacktrace->begin() ) << '\n';
+
+                if ( includeBacktrace->size() > 1u ) {
+                    for ( auto it = ++ includeBacktrace->begin(), end = includeBacktrace->end(); it != end; ++ it ) { // NOLINT(clion-misra-cpp2008-8-0-1)
+                        std :: cerr << "\tincluded from " << ** it << '\n';
+                    }
+                }
+
+                std :: cerr << '\n';
+            } catch ( Exception const & e ) {
+                std :: cerr << "Unexpected Error : " << e.toString() << '\n';
+                std :: cerr << "Occurred in " << ** ( includeBacktrace->begin() ) << '\n';
+
+                if ( includeBacktrace->size() > 1u ) {
+                    for ( auto it = ++ includeBacktrace->begin(), end = includeBacktrace->end(); it != end; ++ it ) { // NOLINT(clion-misra-cpp2008-8-0-1)
+                        std :: cerr << "\tincluded from " << ** it << '\n';
+                    }
+                }
+
+                std :: cerr << '\n';
+            }
+
+        } else {
+            if ( this->inTrueBranch() ) {
+                preprocessedLines.add(line);
+            }
+        }
+    }
+
+    return String :: join ( preprocessedLines, "\n" );
+}
+
+auto Preprocessor :: Job :: inTrueBranch() noexcept -> bool {
+    return this->branchBacktrace->empty() || Preprocessor :: isTrueBranchType ( this->branchBacktrace->peek() );
+}
+
+auto Preprocessor :: Job :: start( Path const & path ) noexcept -> String { // NOLINT(misc-no-recursion)
+    (void) this->includeBacktrace->push ( path.copy() );
+    auto preprocessedCode = this->preprocessLines( uncomment ( load ( path ) ).split ( '\n' ) );
+    (void) this->includeBacktrace->pop();
+
+    return preprocessedCode;
+}
+
+auto Preprocessor :: preprocess ( Path const & path ) noexcept -> String {
+    Job preprocessJob;
+
+    return preprocessJob.start(path);
+}
+
+Preprocessor :: Job :: Job() noexcept :
+        definitions ( new Array < SharedPointer < Define > > ),
+        includeBacktrace ( new Stack < SharedPointer < Path > > ),
+        branchBacktrace ( new Stack < BranchType > ) {
+
+}
+
+auto Preprocessor :: Job :: isDefined ( String const & definitionName ) const noexcept -> bool {
+    return this->definitions->any([& definitionName](auto const & e){
+        return e->name() == definitionName;
+    });
+}
+
+auto Preprocessor :: Job :: define ( String defineData, Define * & pMultiLineDefine ) noexcept(false) -> void {
+    bool toggleMultiLine = false;
+    bool defineReplaced = false;
+
+    pMultiLineDefine = nullptr;
+
+    if ( defineData.trim().endsWith("\\") ) {
+        (void) defineData.trim().removeSuffix("\\");
+        toggleMultiLine = true;
+    }
+
+    auto newDefine = new Define ( defineData );
+
+    if ( toggleMultiLine ) {
+        pMultiLineDefine = newDefine;
+    }
+
+    for ( auto const & define : * this->definitions ) {
+        if ( define->name() == newDefine->name() ) {
+            (void) this->definitions->removeFirst(define);
+            defineReplaced = true;
+            break;
+        }
+    }
+
+    this->definitions->add ( newDefine );
+
+    if ( defineReplaced ) {
+        throw Warning ( "Redefinition of Define '" + newDefine->name() + "'" );
+    }
+}
+
+auto Preprocessor :: Job :: undefine ( String const & definitionName ) noexcept(false) -> void {
+    for ( auto const & definition : * this->definitions ) {
+        if ( definition->name() == definitionName ) {
+            (void) this->definitions->removeFirst( definition );
+            return;
+        }
+    }
+
+    throw Warning ( "Token '" + definitionName + "' never defined" );
+}
+
+auto Preprocessor :: Job :: ifDefined ( String const & definitionName ) noexcept -> void {
+    if (
+            (
+                    this->branchBacktrace->empty() ||
+                    Preprocessor :: isTrueBranchType ( this->branchBacktrace->peek() )
+            ) &&
+            this->isDefined ( definitionName )
+    ) {
+        (void) this->branchBacktrace->push( BranchType :: IfTrue );
+    } else {
+        (void) this->branchBacktrace->push( BranchType :: IfFalse );
+    }
+}
+
+auto Preprocessor :: Job :: ifNotDefined ( String const & definitionName ) noexcept -> void {
+    if (
+            (
+                    this->branchBacktrace->empty() ||
+                    Preprocessor :: isTrueBranchType ( this->branchBacktrace->peek() )
+            ) &&
+            ! this->isDefined ( definitionName )
+    ) {
+        (void) this->branchBacktrace->push ( BranchType :: IfTrue );
+    } else {
+        (void) this->branchBacktrace->push ( BranchType :: IfFalse );
+    }
+}
+
+auto Preprocessor :: Job :: _else () noexcept ( false ) -> void {
+    if ( this->branchBacktrace->empty() ) {
+        throw Error ( "#else preprocessor directive without a previous if" );
+    }
+
+    auto currentBranchType = this->branchBacktrace->pop();
+
+    if (
+            this->branchBacktrace->empty() ||
+            Preprocessor :: isTrueBranchType ( this->branchBacktrace->peek() )
+    ) {
+        if (
+                currentBranchType == BranchType :: IfFalse ||
+                currentBranchType == BranchType :: ElseIfFalseUnevaluated
+        ) {
+            (void) this->branchBacktrace->push ( BranchType :: ElseTrue );
+        } else {
+            if (
+                    currentBranchType == BranchType :: ElseTrue ||
+                    currentBranchType == BranchType :: ElseFalse
+            ) {
+                throw Error ( "#else preprocessor directive without a previous if" );
+            } else {
+                (void) this->branchBacktrace->push ( BranchType :: ElseFalse );
+            }
+        }
+    } else {
+        (void) this->branchBacktrace->push ( BranchType :: ElseFalse );
+    }
+}
+
+auto Preprocessor :: Job :: endIf() noexcept(false) -> void {
+    if ( this->branchBacktrace->empty() ) {
+        throw Error ( "#endif preprocessor directive without a previous if" );
+    }
+
+    (void) this->branchBacktrace->pop();
+}
+
+auto Preprocessor :: Job :: ifStart ( String const & condition, String & multiLineIf ) noexcept (false) -> void {
+    multiLineIf.clear();
+
+    if ( condition.trim().endsWith("\\") ) {
+        multiLineIf = condition.trim().removeSuffix("\\");
+    }
+
+    if ( ! multiLineIf.empty() ) {
+        return;
+    }
+
+    return this->_if ( condition.trim() );
+}
+
+auto Preprocessor :: Job :: elseIfStart ( String const & condition, String & multiLineElseIf ) noexcept(false) -> void {
+    multiLineElseIf.clear();
+
+    if ( condition.trim().endsWith("\\") ) {
+        multiLineElseIf = condition.trim().removeSuffix("\\");
+    }
+
+    if ( ! multiLineElseIf.empty() ) {
+        return;
+    }
+
+    return this->elseIf ( condition.trim() );
+}
+
+auto Preprocessor :: Job :: _if ( String const & condition ) noexcept (false) -> void {
+    if (
+            (
+                    this->branchBacktrace->empty() ||
+                    Preprocessor :: isTrueBranchType ( this->branchBacktrace->peek() )
+            ) &&
+            this->evaluate ( condition )
+    ) {
+        (void) this->branchBacktrace->push ( BranchType :: IfTrue );
+    } else {
+        (void) this->branchBacktrace->push ( BranchType :: IfFalse );
+    }
+}
+
+auto Preprocessor :: Job :: elseIf ( String const & condition ) noexcept (false) -> void {
+    if ( this->branchBacktrace->empty() ) {
+        throw Error ( "#elif preprocessor directive without a previous if" );
+    }
+
+    auto currentBranchType = this->branchBacktrace->pop();
+
+    if (
+            this->branchBacktrace->empty() ||
+            Preprocessor :: isTrueBranchType ( this->branchBacktrace->peek() )
+    ) {
+        if (
+                currentBranchType == BranchType :: IfTrue       ||
+                currentBranchType == BranchType :: ElseIfTrue   ||
+                currentBranchType == BranchType :: ElseIfFalseEvaluated
+        ) {
+            (void) this->branchBacktrace->push ( BranchType :: ElseIfFalseEvaluated );
+        } else if (
+                currentBranchType == BranchType :: ElseIfFalseUnevaluated ||
+                currentBranchType == BranchType :: IfFalse
+        ) {
+            if ( this->evaluate ( condition ) ) {
+                (void) this->branchBacktrace->push(BranchType::ElseIfTrue);
+            } else {
+                (void) this->branchBacktrace->push(BranchType::ElseIfFalseUnevaluated);
+            }
+        } else {
+            throw Error ("Invalid Evaluation of Else If");
+        }
+    } else {
+        (void) this->branchBacktrace->push ( BranchType :: ElseIfFalseUnevaluated );
+    }
+}
+
+#include <CDS/HashMap>
+auto Preprocessor :: Job :: evaluate ( String const & condition ) const noexcept (false) -> bool {
+//    std :: cout << condition << '\n';
+
+    static auto removeWhitespace = []( String const & str, String const & whitespace = " \t\n\r" ) noexcept -> String {
+        String removed;
+        for ( auto c : str ) {
+            if ( ! whitespace.contains(c) ) {
+                removed += c;
+            }
+        }
+
+        return removed;
+    };
+
+    static auto replacePrefixOperators = []( String const & str, String const & prefixPossibleOperators = "-+~!" ) noexcept -> String {
+        String final;
+        bool prefixPossible = true;
+
+        for ( Index i = 0; static_cast < Size > ( i ) < str.length(); ++ i ) {
+            if ( prefixPossible && prefixPossibleOperators.contains (str[i]) ) {
+                final += String(1u, str[i]) + "u";
+            } else {
+                if (
+                        str[i] == '(' && prefixPossibleOperators.contains(str[i+1]) ||
+                        ( ! String::isAlpha(str[i]) && str[i] != '_' )
+                ) {
+                    prefixPossible = true;
+                } else {
+                    prefixPossible = false;
+                }
+
+                final += str[i];
+            }
+        }
+
+        return final;
+    };
+
+    const int bitwisePrecedence = 1;
+    const int logicalPrecedence = 2;
+    const int booleanPrecedence = 3;
+    const int comparisonPrecendece = 4;
+    const int linearArithmeticPrecendece = 5;
+    const int compoundArithmeticPrecedence = 6;
+
+    HashMap < String, Pair < int, int > > operatorPrecedenceAndOpCount = {
+            { "&", { bitwisePrecedence, 2 } },
+            { "|", { bitwisePrecedence, 2 } },
+            { "^", { bitwisePrecedence, 2 } },
+            { "~u", { bitwisePrecedence, 1 } },
+            { "<<", { bitwisePrecedence, 2 } },
+            { ">>", { bitwisePrecedence, 2 } },
+            { "!u", { booleanPrecedence, 1 } },
+            { "&&", { booleanPrecedence, 2 } },
+            { "||", { booleanPrecedence, 2 } },
+            { "==", { comparisonPrecendece, 2 } },
+            { "!=", { comparisonPrecendece, 2 } },
+            { ">", { comparisonPrecendece, 2 } },
+            { "<", { comparisonPrecendece, 2 } },
+            { "<=", { comparisonPrecendece, 2 } },
+            { ">=", { comparisonPrecendece, 2 } },
+            { "+", { linearArithmeticPrecendece, 2 } },
+            { "-", { linearArithmeticPrecendece, 2 } },
+            { "+u", { linearArithmeticPrecendece, 1 } },
+            { "-u", { linearArithmeticPrecendece, 1 } },
+            { "*", { compoundArithmeticPrecedence, 2 } },
+            { "/", { compoundArithmeticPrecedence, 2 } },
+            { "%", { compoundArithmeticPrecedence, 2 } },
+    };
+
+    static auto conditionToPostfix = []( String const & condition, HashMap < String, Pair < int, int > > const & precedenceAndOpCount ) noexcept (false) -> String {
+        Stack < String > bracketedStack;
+        String token;
+
+        String postfixed;
+
+        static constexpr auto isTokenCharacter = [] (char c) noexcept -> bool {
+            return String :: isAlpha ( c ) || c == '_';
+        };
+
+        auto str = replacePrefixOperators(removeWhitespace(condition));
+        for ( Index i = 0; static_cast < Size > ( i ) < str.length(); ++ i ) {
+            if ( isTokenCharacter (str[i]) ) {
+                token += str[i];
+                continue;
+            } else if ( ! token.empty() ) {
+                postfixed += token + ' ';
+                token.clear();
+            } else {
+                /// do nothing
+            }
+
+            if ( str[i] == '(' ) {
+                (void) bracketedStack.push ( String(1u, str[i]) );
+            } else if ( str[i] == ')' ) {
+                while ( ! bracketedStack.empty() && bracketedStack.peek() != "(" ) {
+                    postfixed += bracketedStack.pop() + " ";
+                }
+
+                if ( ! bracketedStack.empty() && bracketedStack.peek() == "(" ) {
+                    (void)bracketedStack.pop();
+                }
+            } else {
+                String op ( 1u, str[i] );
+                String op2 ( { str[i], str[i + 1] } );
+
+                String fOp = "";
+
+                if ( precedenceAndOpCount.containsKey( op2 ) ) {
+                    fOp = op2;
+                    ++ i;
+                } else if ( precedenceAndOpCount.containsKey( op ) ) {
+                    fOp = op;
+                } else {
+                    throw Error ("Invalid Operator : "_s + str[i]);
+                }
+
+                while ( ! bracketedStack.empty() && precedenceAndOpCount[fOp].first() <= precedenceAndOpCount[bracketedStack.peek()].first() ) {
+                    postfixed += bracketedStack.pop() + " ";
+                }
+
+                (void) bracketedStack.push(fOp);
+            }
+        }
+
+        if ( ! token.empty() ) {
+            postfixed += token + " ";
+        }
+
+        while ( ! bracketedStack.empty() ) {
+            postfixed += bracketedStack.pop() + " ";
+        }
+
+        return postfixed;
+    };
+
+    auto postfixed = conditionToPostfix ( condition, operatorPrecedenceAndOpCount );
+
+    std :: cout << postfixed << '\n';
+
+    return false;
+}
+
+#ifndef NDEBUG
+
+auto Preprocessor :: Job :: printBranchTrace ( std :: ostream & out, String const & additionalInfo ) noexcept -> void {
+    out << "-"_s * 30 << " Conditional Backtrace " << "-"_s * 30 << '\n';
+    out << "\t\tAdditional Info : " << additionalInfo << '\n';
+    for ( auto const & e : * this->branchBacktrace ) {
+        out << "\t" << Preprocessor :: branchTypeToString ( e ) << '\n';
+    }
+
+    out << '\n';
+}
+
+#endif
