@@ -26,6 +26,16 @@ class Define;
 
 class Preprocessor : cds :: Object {
 private:
+
+    struct ConditionNode {
+        cds :: String _operator; // NOLINT(clion-misra-cpp2008-11-0-1)
+
+        cds :: sint64 operand { 0 }; // NOLINT(clion-misra-cpp2008-11-0-1)
+
+        ConditionNode * pLeft   { nullptr }; // NOLINT(clion-misra-cpp2008-11-0-1)
+        ConditionNode * pRight  { nullptr }; // NOLINT(clion-misra-cpp2008-11-0-1)
+    };
+
     cds :: UniquePointer < cds :: Array < cds :: SharedPointer < cds :: Path > > > _includedDirectories;
 
     Preprocessor () noexcept;
@@ -155,6 +165,8 @@ public:
 
         auto preprocessLines ( cds :: Collection < cds :: String > const & ) noexcept -> cds :: String;
         auto include ( cds :: String const & ) noexcept ( false ) -> cds :: String;
+
+        auto evaluateTree ( ConditionNode * ) const noexcept (false) -> cds :: sint64;
 
     public:
         explicit Job () noexcept;

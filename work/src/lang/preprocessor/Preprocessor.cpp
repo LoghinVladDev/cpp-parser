@@ -496,6 +496,8 @@ auto Preprocessor :: Job :: elseIf ( String const & condition ) noexcept (false)
 }
 
 #include <CDS/HashMap>
+#include <CDS/Queue>
+
 auto Preprocessor :: Job :: evaluate ( String const & condition ) const noexcept (false) -> bool {
 //    std :: cout << condition << '\n';
 
@@ -577,7 +579,7 @@ auto Preprocessor :: Job :: evaluate ( String const & condition ) const noexcept
         };
 
         auto str = replacePrefixOperators(removeWhitespace(condition));
-        for ( Index i = 0; static_cast < Size > ( i ) < str.length(); ++ i ) {
+        for ( Index i = 0; static_cast < Size > ( i ) < str.length(); ++ i ) { // NOLINT(clion-misra-cpp2008-6-5-3)
             if ( isTokenCharacter (str[i]) ) {
                 token += str[i];
                 continue;
@@ -634,14 +636,173 @@ auto Preprocessor :: Job :: evaluate ( String const & condition ) const noexcept
 
     auto postfixed = conditionToPostfix ( condition, operatorPrecedenceAndOpCount );
 
-    std :: cout << postfixed << '\n';
+    auto convertToLong = [this] ( cds :: String const & token ) noexcept (false) -> sint64 {
+        auto trimmed = token.trim();
 
-    return false;
+        if ( trimmed == "true" ) { return 1; }
+        if ( trimmed == "false" ) { return 0; }
+
+        //// add token replacement
+
+        (void) token
+            .removeSuffix("l").removeSuffix("L")
+            .removeSuffix("l").removeSuffix("L")
+            .removeSuffix("u").removeSuffix("U")
+            .removeSuffix("l").removeSuffix("L")
+            .removeSuffix("l").removeSuffix("L");
+
+        if ( token.lower().startsWith( "0b" ) ) {
+            if ( token.any ( [](char c){ return ! "01bB"_s.contains(c); } ) ) {
+                throw Error ( "Invalid character in binary integer : " + token );
+            }
+
+            return strtoll ( token.cStr() + 2, nullptr, 2 );
+        } else if ( token.startsWith( "0" ) && token.length() > 1u ) {
+            if ( token.any ( [](char c){ return ! "01234567"_s.contains(c); } ) ) {
+                throw Error ( "Invalid character in octal integer : " + token );
+            }
+
+            return strtoll ( token.cStr() + 1, nullptr, 8 );
+        } else if ( token.startsWith( "0x" ) ) {
+            if ( token.any ( [](char c){ return ! "0123456789abcdefABCDEFxX"_s.contains(c); } ) ) {
+                throw Error ( "Invalid character in hexadecimal integer : " + token );
+            }
+
+            return strtoll ( token.cStr() + 2, nullptr, 16 );
+        } else {
+            if ( token.any ( [](char c){ return ! "0123456789"_s.contains(c); } ) ) {
+                throw Error ( "Invalid character in integer : " + token );
+            }
+
+            return strtoll ( token.cStr(), nullptr, 10 );
+        }
+    };
+
+    static auto treeTransformation = [& convertToLong] ( String const & postfixed, HashMap < String, Pair < int, int > > const & opsWithPrecendeceAndOpCount ) noexcept (false) -> ConditionNode * {
+        Stack < ConditionNode * > stack;
+
+        for ( auto const & token : postfixed.split(' ') ) {
+            if ( ! opsWithPrecendeceAndOpCount.containsKey( token ) ) {
+                (void) stack.push ( new ConditionNode { "", convertToLong (token), nullptr, nullptr } );
+            } else {
+                if ( opsWithPrecendeceAndOpCount[token].second() == 1 ) {
+                    if ( stack.empty() ) {
+                        throw Error ( "Invalid Parse Result, Expected one operand for unary "_s + token );
+                    }
+
+                    (void) stack.push ( new ConditionNode { token, 0, stack.pop(), nullptr } );
+                } else if ( opsWithPrecendeceAndOpCount[token].second() == 2 ) {
+                    if ( stack.size() <= 1u ) {
+                        throw Error ( "Invalid Parse Result, Expected two operands for binary "_s + token );
+                    }
+
+                    auto rightOp = stack.pop();
+                    (void) stack.push ( new ConditionNode { token, 0, stack.pop(), rightOp } );
+                } else {
+                    throw Error ( "Invalid Operand, No operand count specified for operator "_s + token );
+                }
+            }
+        }
+
+        return stack.peek();
+    };
+
+    static auto destroyParseTree = [] ( ConditionNode * & tree, bool debug = false ) noexcept -> void {
+        Queue < ConditionNode * > pToParse;
+        (void) pToParse.push ( tree );
+
+        while ( ! pToParse.empty() ) {
+            auto current = pToParse.pop();
+
+            if ( debug ) {
+                std :: cout << current->operand << ' ';
+            }
+
+            if ( current->pLeft != nullptr ) {
+                (void) pToParse.push( current->pLeft );
+            }
+
+            if ( current->pRight != nullptr ) {
+                (void) pToParse.push( current->pRight );
+            }
+
+            delete current;
+        }
+
+        if ( debug ) {
+            std :: cout << '\n';
+        }
+    };
+
+    auto tree = treeTransformation ( postfixed, operatorPrecedenceAndOpCount );
+    auto retVal = this->evaluateTree ( tree );
+
+    destroyParseTree ( tree );
+
+    return retVal;
+}
+
+auto Preprocessor :: Job :: evaluateTree (ConditionNode * pNode) const noexcept (false) -> sint64 {
+    if ( pNode->_operator == "&" ) {
+        return this->evaluateTree( pNode->pLeft ) & this->evaluateTree( pNode->pRight );
+    } else if ( pNode->_operator == "|" ) {
+        return this->evaluateTree( pNode->pLeft ) | this->evaluateTree( pNode->pRight );
+    } else if ( pNode->_operator == "^" ) {
+        return this->evaluateTree( pNode->pLeft ) ^ this->evaluateTree( pNode->pRight );
+    } else if ( pNode->_operator == "~u" ) {
+        return ~ this->evaluateTree( pNode->pLeft );
+    } else if ( pNode->_operator == "<<" ) {
+        return this->evaluateTree( pNode->pLeft ) << this->evaluateTree( pNode->pRight );
+    } else if ( pNode->_operator == ">>" ) {
+        return this->evaluateTree( pNode->pLeft ) >> this->evaluateTree( pNode->pRight );
+    } else if ( pNode->_operator == "!u" ) {
+        return static_cast < sint64 > ( ! static_cast < bool > ( this->evaluateTree( pNode->pLeft ) ) );
+    } else if ( pNode->_operator == "&&" ) {
+        return
+            static_cast < sint64 > (
+                static_cast < bool > ( this->evaluateTree( pNode->pLeft ) ) &&
+                static_cast < bool > ( this->evaluateTree( pNode->pRight ) )
+            );
+    } else if ( pNode->_operator == "||" ) {
+        return
+            static_cast < sint64 > (
+                    static_cast < bool > ( this->evaluateTree( pNode->pLeft ) ) ||
+                    static_cast < bool > ( this->evaluateTree( pNode->pRight ) )
+            );
+    } else if ( pNode->_operator == "==" ) {
+        return static_cast < sint64 > ( this->evaluateTree( pNode->pLeft ) == this->evaluateTree( pNode->pRight ) );
+    } else if ( pNode->_operator == "!=" ) {
+        return static_cast < sint64 > ( this->evaluateTree( pNode->pLeft ) != this->evaluateTree( pNode->pRight ) );
+    } else if ( pNode->_operator == ">" ) {
+        return static_cast < sint64 > ( this->evaluateTree( pNode->pLeft ) > this->evaluateTree( pNode->pRight ) );
+    } else if ( pNode->_operator == "<" ) {
+        return static_cast < sint64 > ( this->evaluateTree( pNode->pLeft ) < this->evaluateTree( pNode->pRight ) );
+    } else if ( pNode->_operator == "<=" ) {
+        return static_cast < sint64 > ( this->evaluateTree( pNode->pLeft ) <= this->evaluateTree( pNode->pRight ) );
+    } else if ( pNode->_operator == ">=" ) {
+        return static_cast < sint64 > ( this->evaluateTree( pNode->pLeft ) >= this->evaluateTree( pNode->pRight ) );
+    } else if ( pNode->_operator == "+" ) {
+        return this->evaluateTree( pNode->pLeft ) + this->evaluateTree( pNode->pRight );
+    } else if ( pNode->_operator == "-" ) {
+        return this->evaluateTree( pNode->pLeft ) - this->evaluateTree( pNode->pRight );
+    } else if ( pNode->_operator == "+u" ) {
+        return + this->evaluateTree( pNode->pLeft );
+    } else if ( pNode->_operator == "-u" ) {
+        return - this->evaluateTree( pNode->pLeft );
+    } else if ( pNode->_operator == "*" ) {
+        return this->evaluateTree( pNode->pLeft ) * this->evaluateTree( pNode->pRight );
+    } else if ( pNode->_operator == "/" ) {
+        return this->evaluateTree( pNode->pLeft ) / this->evaluateTree( pNode->pRight );
+    } else if ( pNode->_operator == "%" ) {
+        return this->evaluateTree( pNode->pLeft ) % this->evaluateTree( pNode->pRight );
+    } else {
+        return pNode->operand;
+    }
 }
 
 #ifndef NDEBUG
 
-auto Preprocessor :: Job :: printBranchTrace ( std :: ostream & out, String const & additionalInfo ) noexcept -> void {
+__CDS_MaybeUnused auto Preprocessor :: Job :: printBranchTrace ( std :: ostream & out, String const & additionalInfo ) noexcept -> void {
     out << "-"_s * 30 << " Conditional Backtrace " << "-"_s * 30 << '\n';
     out << "\t\tAdditional Info : " << additionalInfo << '\n';
     for ( auto const & e : * this->branchBacktrace ) {
