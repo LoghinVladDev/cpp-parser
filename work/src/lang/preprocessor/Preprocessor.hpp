@@ -168,6 +168,8 @@ public:
 
         auto evaluateTree ( ConditionNode * ) const noexcept (false) -> cds :: sint64;
 
+        auto replace ( cds :: String const & ) const noexcept ( false ) -> cds :: String;
+
     public:
         explicit Job () noexcept;
 

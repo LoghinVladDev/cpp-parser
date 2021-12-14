@@ -800,6 +800,10 @@ auto Preprocessor :: Job :: evaluateTree (ConditionNode * pNode) const noexcept 
     }
 }
 
+auto Preprocessor :: Job :: replace ( String const & str ) const noexcept (false) -> String {
+
+}
+
 #ifndef NDEBUG
 
 __CDS_MaybeUnused auto Preprocessor :: Job :: printBranchTrace ( std :: ostream & out, String const & additionalInfo ) noexcept -> void {
